@@ -132,27 +132,6 @@ spec:
       - image: <vars.keycloak.image.name>:<vars.keycloak.image.version>
         name: keycloak
         env:
-        - name: PIWIK_JAVASCRIPT
-          valueFrom:
-            configMapKeyRef:
-              name: keycloak-env-<vars.keycloak.revision>
-              key: piwik_javascript
-        ports:
-        - containerPort: 8080
-          name: "keycloak"
-        <resourcesGroup(parent, vars, vars.keycloak)>
-        readinessProbe:
-          tcpSocket:
-            port: 8080
-          initialDelaySeconds: <vars.keycloak.initialDelaySeconds>
-          periodSeconds: 60
-          timeoutSeconds: 10
-      - image: <vars.pgbouncer.image.name>:<vars.pgbouncer.image.version>
-        name: pgbouncer
-        ports:
-        - containerPort: 5432
-          name: "postgres"
-        env:
         - name: JAVA_OPTS
           value: "-Xms<vars.keycloak.java.heapStart> -Xmx<vars.keycloak.java.heapMax> -XX:MetaspaceSize=<vars.keycloak.java.metaspaceStart> -XX:MaxMetaspaceSize=<vars.keycloak.java.metaspaceMax> -Djava.net.preferIPv4Stack=true -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true"
         - name: KEYCLOAK_USER
@@ -179,6 +158,37 @@ spec:
           valueFrom:
             secretKeyRef:
               name: keycloak-db-<vars.keycloak.revision>
+              key: database
+        ports:
+        - containerPort: 8080
+          name: "keycloak"
+        <resourcesGroup(parent, vars, vars.keycloak)>
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: <vars.keycloak.initialDelaySeconds>
+          periodSeconds: 60
+          timeoutSeconds: 10
+      - image: <vars.pgbouncer.image.name>:<vars.pgbouncer.image.version>
+        name: pgbouncer
+        ports:
+        - containerPort: 5432
+          name: "postgres"
+        env:
+        - name: POSTGRESQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: gitea-db-<vars.keycloak.revision>
+              key: user
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: gitea-db-<vars.keycloak.revision>
+              key: password
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: gitea-db-<vars.keycloak.revision>
               key: database
         livenessProbe:
           tcpSocket:
