@@ -138,8 +138,6 @@ spec:
           value: "<vars.keycloak.adminUser>"
         - name: KEYCLOAK_PASSWORD
           value: "<vars.keycloak.adminPassword>"
-        - name: DB_VENDOR
-          value: "postgres"
         - name: DB_ADDR
           value: "localhost"
         - name: DB_PORT
