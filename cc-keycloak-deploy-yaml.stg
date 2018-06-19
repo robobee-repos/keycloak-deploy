@@ -374,7 +374,7 @@ metadata:
   name: sso-andrea-muellerpublic-de
   namespace: keycloak
 spec:
-  <certDefaultSpecProd(parent, vars, vars.keycloak.nginx, "sso-andrea-muellerpublic-de")>
+  <certDefaultSpecProd(parent, vars, vars.keycloak, "sso-andrea-muellerpublic-de")>
 
 ---
 
