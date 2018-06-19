@@ -178,17 +178,17 @@ spec:
         - name: POSTGRESQL_USER
           valueFrom:
             secretKeyRef:
-              name: gitea-db-<vars.keycloak.revision>
+              name: keycloak-db-<vars.keycloak.revision>
               key: user
         - name: POSTGRESQL_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: gitea-db-<vars.keycloak.revision>
+              name: keycloak-db-<vars.keycloak.revision>
               key: password
         - name: POSTGRESQL_DATABASE
           valueFrom:
             secretKeyRef:
-              name: gitea-db-<vars.keycloak.revision>
+              name: keycloak-db-<vars.keycloak.revision>
               key: database
         livenessProbe:
           tcpSocket:
