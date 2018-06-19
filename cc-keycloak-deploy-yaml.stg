@@ -348,4 +348,34 @@ spec:
 
 ---
 
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: sso-andrea-muellerpublic-de
+  namespace: keycloak
+  labels:
+    app: keycloak
+    tier: frontend
+    deployment: keycloak
+  annotations:
+    <ingressDefaultAnnotations(parent, vars, vars.nginx)>
+spec:
+  <ingressDefaultSpec(parent, vars, vars.keycloak, "sso-andrea-muellerpublic-de")>
+
+---
+
+<ingressService(parent, vars, vars.keycloak, "keycloak", "keycloak", "sso-andrea-muellerpublic-de")>
+
+---
+
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: sso-andrea-muellerpublic-de
+  namespace: keycloak
+spec:
+  <certDefaultSpecProd(parent, vars, vars.keycloak.nginx, "sso-andrea-muellerpublic-de")>
+
+---
+
 >>
