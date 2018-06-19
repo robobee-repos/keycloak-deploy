@@ -1,0 +1,22 @@
+/*
+ * Mandatory:
+ *
+ * vars.volumes.data.storage
+ *
+ */
+bb-volumes-yaml(parent, vars) ::= <<
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-data
+  namespace: keycloak
+  labels:
+    group: keycloak
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: <vars.volumes.data.storage>
+
+>>
