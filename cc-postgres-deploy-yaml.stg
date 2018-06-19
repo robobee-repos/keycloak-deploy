@@ -43,11 +43,11 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: postgres-<vars.postgres.revision>
-  namespace: anrisoftware-com
+  namespace: keycloak
   labels:
     app: postgres
     tier: backend
-    group: anrisoftware-com
+    group: keycloak
 type: Opaque
 data:
   user: <vars.postgres.user;format="base64">
@@ -60,11 +60,11 @@ kind: Service
 apiVersion: v1
 metadata:
   name: postgres
-  namespace: anrisoftware-com
+  namespace: keycloak
   labels:
     app: postgres
     tier: backend
-    group: anrisoftware-com
+    group: keycloak
 spec:
   ports:
   - protocol: TCP
@@ -80,11 +80,11 @@ kind: Service
 apiVersion: v1
 metadata:
   name: db
-  namespace: anrisoftware-com
+  namespace: keycloak
   labels:
     app: postgres
     tier: backend
-    group: anrisoftware-com
+    group: keycloak
 spec:
   ports:
   - protocol: TCP
@@ -100,11 +100,11 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: postgres
-  namespace: anrisoftware-com
+  namespace: keycloak
   labels:
     app: postgres
     tier: backend
-    group: anrisoftware-com
+    group: keycloak
 spec:
   replicas: 1
   template:
@@ -112,7 +112,7 @@ spec:
       labels:
         app: postgres
         tier: backend
-        group: anrisoftware-com
+        group: keycloak
     spec:
       containers:
       - image: <vars.postgres.image.name>:<vars.postgres.image.version>
@@ -147,7 +147,7 @@ spec:
       volumes:
       - name: pgdata
         persistentVolumeClaim:
-          claimName: anrisoftware-com-data
+          claimName: keycloak-data
       <affinitiesGroup(parent, vars, vars.postgres.affinity)>
       <tolerationMasterGroup(parent, vars, vars.postgres.allowOnMaster)>
       <tolerationsGroup(parent, vars, vars.postgres.tolerations, vars.postgres.allowOnMaster)>
@@ -158,18 +158,18 @@ apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   name: rsync-postgres
-  namespace: anrisoftware-com
+  namespace: keycloak
   labels:
     app: rsync-postgres
     tier: backup
-    group: anrisoftware-com
+    group: keycloak
 spec:
   replicas: 0
   selector:
     matchLabels:
       app: rsync-postgres
       tier: backup
-      group: anrisoftware-com
+      group: keycloak
   strategy:
     type: Recreate
   template:
@@ -177,7 +177,7 @@ spec:
       labels:
         app: rsync-postgres
         tier: backup
-        group: anrisoftware-com
+        group: keycloak
     spec:
       containers:
       - image: <vars.rsync.image.name>:<vars.rsync.image.version>
@@ -211,7 +211,7 @@ spec:
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: anrisoftware-com-data
+          claimName: keycloak-data
       <affinitiesGroup(parent, vars, vars.postgres.affinity)>
       <tolerationMasterGroup(parent, vars, vars.postgres.allowOnMaster)>
       <tolerationsGroup(parent, vars, vars.postgres.tolerations, vars.postgres.allowOnMaster)>
