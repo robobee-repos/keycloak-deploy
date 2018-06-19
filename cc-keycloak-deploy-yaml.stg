@@ -141,7 +141,7 @@ spec:
         - name: DB_VENDOR
           value: "postgres"
         - name: DB_ADDR
-          value: "127.0.0.1"
+          value: "localhost"
         - name: DB_PORT
           value: "5432"
         - name: DB_USER
