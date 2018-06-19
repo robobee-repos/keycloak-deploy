@@ -168,17 +168,17 @@ spec:
         - name: DB_USER
           valueFrom:
             secretKeyRef:
-              name: keycloak-db-<vars.redmine.revision>
+              name: keycloak-db-<vars.keycloak.revision>
               key: user
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: keycloak-db-<vars.redmine.revision>
+              name: keycloak-db-<vars.keycloak.revision>
               key: password
         - name: DB_DATABASE
           valueFrom:
             secretKeyRef:
-              name: keycloak-db-<vars.redmine.revision>
+              name: keycloak-db-<vars.keycloak.revision>
               key: database
         livenessProbe:
           tcpSocket:
