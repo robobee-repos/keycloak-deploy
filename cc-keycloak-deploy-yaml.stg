@@ -153,17 +153,29 @@ spec:
         - containerPort: 5432
           name: "postgres"
         env:
-        - name: POSTGRESQL_USER
+        - name: JAVA_OPTS
+          value: "-Xms<vars.keycloak.java.heapStart> -Xmx<vars.keycloak.java.heapMax> -XX:MetaspaceSize=<vars.keycloak.java.metaspaceStart> -XX:MaxMetaspaceSize=<vars.keycloak.java.metaspaceMax> -Djava.net.preferIPv4Stack=true -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true"
+        - name: KEYCLOAK_USER
+          value: "<vars.keycloak.adminUser>"
+        - name: KEYCLOAK_PASSWORD
+          value: "<vars.keycloak.adminPassword>"
+        - name: DB_VENDOR
+          value: "postgres"
+        - name: DB_ADDR
+          value: "127.0.0.1"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
           valueFrom:
             secretKeyRef:
               name: keycloak-db-<vars.redmine.revision>
               key: user
-        - name: POSTGRESQL_PASSWORD
+        - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: keycloak-db-<vars.redmine.revision>
               key: password
-        - name: POSTGRESQL_DATABASE
+        - name: DB_DATABASE
           valueFrom:
             secretKeyRef:
               name: keycloak-db-<vars.redmine.revision>
