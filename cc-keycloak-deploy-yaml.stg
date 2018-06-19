@@ -269,27 +269,6 @@ spec:
 
 ---
 
-apiVersion: v1
-kind: Service
-metadata:
-  name: git-public
-  namespace: keycloak
-  labels:
-    app: keycloak
-    tier: backend
-    group: keycloak
-spec:
-  type: NodePort
-  ports:
-  - name: "ssh"
-    port: 4444
-    targetPort: 22
-    nodePort: 30022
-  selector:
-    app: keycloak
-
----
-
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
