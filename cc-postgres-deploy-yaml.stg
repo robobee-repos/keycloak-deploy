@@ -147,7 +147,7 @@ spec:
       volumes:
       - name: pgdata
         persistentVolumeClaim:
-          claimName: keycloak-data
+          claimName: keycloak-data-1
       <affinitiesGroup(parent, vars, vars.postgres.affinity)>
       <tolerationMasterGroup(parent, vars, vars.postgres.allowOnMaster)>
       <tolerationsGroup(parent, vars, vars.postgres.tolerations, vars.postgres.allowOnMaster)>
@@ -207,18 +207,11 @@ spec:
         - mountPath: "/data"
           subPath: "pgdata"
           name: data
-        volumeMounts:
-        - mountPath: "/data-1"
-          subPath: "pgdata"
-          name: data-1
       restartPolicy: Always
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: keycloak-data
-      - name: data-1
-        persistentVolumeClaim:
-          claimName: keycloak-data
+          claimName: keycloak-data-1
       <affinitiesGroup(parent, vars, vars.postgres.affinity)>
       <tolerationMasterGroup(parent, vars, vars.postgres.allowOnMaster)>
       <tolerationsGroup(parent, vars, vars.postgres.tolerations, vars.postgres.allowOnMaster)>
