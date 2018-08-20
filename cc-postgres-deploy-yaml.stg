@@ -207,9 +207,16 @@ spec:
         - mountPath: "/data"
           subPath: "pgdata"
           name: data
+        volumeMounts:
+        - mountPath: "/data-1"
+          subPath: "pgdata"
+          name: data-1
       restartPolicy: Always
       volumes:
       - name: data
+        persistentVolumeClaim:
+          claimName: keycloak-data
+      - name: data-1
         persistentVolumeClaim:
           claimName: keycloak-data
       <affinitiesGroup(parent, vars, vars.postgres.affinity)>

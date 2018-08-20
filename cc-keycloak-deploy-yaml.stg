@@ -339,11 +339,20 @@ spec:
         - mountPath: "/html"
           name: data
           subPath: keycloak_html
+        - mountPath: "/data-1"
+          name: data-1
+          subPath: keycloak_data
+        - mountPath: "/html-1"
+          name: data-1
+          subPath: keycloak_html
       restartPolicy: Always
       volumes:
       - name: data
         persistentVolumeClaim:
           claimName: keycloak-data
+      - name: data-1
+        persistentVolumeClaim:
+          claimName: keycloak-data-1
       <affinitiesGroup(parent, vars, vars.keycloak.affinity)>
       <tolerationMasterGroup(parent, vars, vars.keycloak.allowOnMaster)>
       <tolerationsGroup(parent, vars, vars.keycloak.tolerations, vars.keycloak.allowOnMaster)>
