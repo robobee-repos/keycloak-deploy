@@ -171,10 +171,10 @@ spec:
         - -c
         - >
           while ! PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} psql "postgresql://${PGUSER}@${PGHOST}" -c "SELECT 1;"; do sleep 3; done;
-          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} createuser $POSTGRESQL_USER ;
-          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} createdb --owner=$POSTGRESQL_USER $POSTGRESQL_DATABASE ;
-          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} psql --command "ALTER USER \"${POSTGRESQL_USER}\" WITH ENCRYPTED PASSWORD '${POSTGRESQL_PASSWORD}';"
-          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} psql --command "ALTER SCHEMA public OWNER TO ${POSTGRESQL_USER};"
+          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} createuser $POSTGRESQL_USER;
+          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} createdb --owner=$POSTGRESQL_USER $POSTGRESQL_DATABASE;
+          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} psql --command "ALTER USER \"${POSTGRESQL_USER}\" WITH ENCRYPTED PASSWORD '${POSTGRESQL_PASSWORD}';";
+          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} psql --command "ALTER SCHEMA public OWNER TO ${POSTGRESQL_USER};";
       containers:
       - image: <vars.keycloak.image.name>:<vars.keycloak.image.version>
         name: keycloak
