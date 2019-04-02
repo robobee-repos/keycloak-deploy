@@ -4,13 +4,13 @@
  * vars.keycloak.image.name
  * vars.keycloak.image.version
  * vars.keycloak.revision
- * vars.keycloak.nginx.hosts[]
  * vars.keycloak.postgres.user
  * vars.keycloak.postgres.password
  * vars.keycloak.postgres.database
- * vars.keycloak.nginx.initialDelaySeconds
- * vars.postgres.password
- * vars.rsync.ssh.revision
+ * vars.keycloak.initialDelaySeconds
+ * 
+ * vars.postgres.admin.user
+ * vars.postgres.admin.password
  * 
  * Optional:
  * 
@@ -18,6 +18,7 @@
  * vars.keycloak.limits.memory
  * vars.keycloak.requests.cpu
  * vars.keycloak.requests.memory
+ * 
  * vars.keycloak.affinity.key
  * vars.keycloak.affinity.name
  * vars.keycloak.affinity.required
@@ -25,6 +26,15 @@
  * vars.keycloak.tolerations[].effect
  * vars.keycloak.tolerations[].key
  * vars.keycloak.tolerations[].value
+ * 
+ * vars.pgbouncer.limits.cpu
+ * vars.pgbouncer.limits.memory
+ * vars.pgbouncer.requests.cpu
+ * vars.pgbouncer.requests.memory
+ * vars.pgbouncer.readinessProbe.initialDelaySeconds
+ *     Defaults to 3.
+ * vars.pgbouncer.livenessProbe.initialDelaySeconds
+ *     Defaults to 30.
  */
 
 import "robobeerun-templates/_affinities.stg"
@@ -44,30 +54,27 @@ cc-keycloak-deploy-yaml(parent, vars) ::= <<
 apiVersion: v1
 kind: Secret
 metadata:
-  name: keycloak-db-<vars.keycloak.revision>
-  namespace: keycloak
+  name: db-<vars.keycloak.revision>
+  namespace: keycloak-muellerpublic-de
   labels:
-    app: keycloak
     tier: backend
-    group: keycloak
 type: Opaque
 data:
   user: <vars.keycloak.postgres.user;format="base64">
   password: <vars.keycloak.postgres.password;format="base64">
   database: <vars.keycloak.postgres.database;format="base64">
-  admin_password: <vars.postgres.password;format="base64">
+  admin_user: <vars.postgres.admin.user;format="base64">
+  admin_password: <vars.postgres.admin.password;format="base64">
 
 ---
 
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: keycloak-pgbouncer-<vars.keycloak.revision>
-  namespace: keycloak
+  name: pgbouncer-<vars.keycloak.revision>
+  namespace: keycloak-muellerpublic-de
   labels:
-    app: pgbouncer
     tier: backend
-    group: keycloak
 data:
   pgbouncer.ini: |
     [databases]
@@ -90,11 +97,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: keycloak
-  namespace: keycloak
+  namespace: keycloak-muellerpublic-de
   labels:
-    app: keycloak
     tier: frontend
-    group: keycloak
 spec:
   ports:
   - name: "http"
@@ -109,24 +114,20 @@ apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   name: keycloak
-  namespace: keycloak
+  namespace: keycloak-muellerpublic-de
   labels:
-    app: keycloak
     tier: frontend
-    group: keycloak
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: keycloak
       tier: frontend
-      group: keycloak
   template:
     metadata:
       labels:
         app: keycloak
         tier: frontend
-        group: keycloak
     spec:
       containers:
       - image: <vars.keycloak.image.name>:<vars.keycloak.image.version>
@@ -149,17 +150,17 @@ spec:
         - name: DB_USER
           valueFrom:
             secretKeyRef:
-              name: keycloak-db-<vars.keycloak.revision>
+              name: db-<vars.keycloak.revision>
               key: user
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: keycloak-db-<vars.keycloak.revision>
+              name: db-<vars.keycloak.revision>
               key: password
         - name: DB_DATABASE
           valueFrom:
             secretKeyRef:
-              name: keycloak-db-<vars.keycloak.revision>
+              name: db-<vars.keycloak.revision>
               key: database
         - name: POSTGRES_PORT
           value: ""
@@ -167,8 +168,15 @@ spec:
         - containerPort: 8080
           name: "keycloak"
         <resourcesGroup(parent, vars, vars.keycloak)>
-        readinessProbe:
+        livenessProbe:
           tcpSocket:
+            port: 8080
+          initialDelaySeconds: <vars.keycloak.initialDelaySeconds>
+          periodSeconds: 60
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
             port: 8080
           initialDelaySeconds: <vars.keycloak.initialDelaySeconds>
           periodSeconds: 60
@@ -177,48 +185,35 @@ spec:
         name: pgbouncer
         ports:
         - containerPort: 5432
-          name: "postgres"
+          name: postgres
         env:
-        - name: POSTGRESQL_USER
+        - name: PGUSER
           valueFrom:
             secretKeyRef:
-              name: keycloak-db-<vars.keycloak.revision>
+              name: db-<vars.keycloak.revision>
               key: user
-        - name: POSTGRESQL_PASSWORD
+        - name: PGPASSWORD
           valueFrom:
             secretKeyRef:
-              name: keycloak-db-<vars.keycloak.revision>
+              name: db-<vars.keycloak.revision>
               key: password
-        - name: POSTGRESQL_DATABASE
+        - name: PGDATABASE
           valueFrom:
             secretKeyRef:
-              name: keycloak-db-<vars.keycloak.revision>
+              name: db-<vars.keycloak.revision>
               key: database
-        livenessProbe:
-          tcpSocket:
-            port: 5432
-          initialDelaySeconds: 10
-          periodSeconds: 60
-          timeoutSeconds: 10
-        readinessProbe:
-          timeoutSeconds: 3
-          initialDelaySeconds: 5
-          exec:
-            command:
-            - "/bin/sh"
-            - "-i"
-            - "-c"
-            - PGPASSWORD=${POSTGRESQL_PASSWORD}
-            - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c 'SELECT 1'
+        - name: PGHOST
+          value: "127.0.0.1"
+        <postgresReadinessProbe(parent, vars.pgbouncer)>
         <resourcesGroup(parent, vars, vars.pgbouncer)>
         volumeMounts:
-        - mountPath: "/pgconf/bouncerconfig"
+        - mountPath: "/pgconf"
           name: "pgbouncer-config"
       restartPolicy: Always
       volumes:
       - name: "pgbouncer-config"
         configMap:
-          name: "keycloak-pgbouncer-<vars.keycloak.revision>"
+          name: "pgbouncer-<vars.keycloak.revision>"
       <affinitiesGroup(parent, vars, vars.keycloak.affinity)>
       <tolerationMasterGroup(parent, vars, vars.keycloak.allowOnMaster)>
       <tolerationsGroup(parent, vars, vars.keycloak.tolerations, vars.keycloak.allowOnMaster)>
@@ -229,7 +224,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: keycloak-db-setup
-  namespace: keycloak
+  namespace: keycloak-muellerpublic-de
   labels:
     app: keycloak
     tier: frontend
@@ -287,7 +282,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: sso-andrea-muellerpublic-de
-  namespace: keycloak
+  namespace: keycloak-muellerpublic-de
   labels:
     app: keycloak
     tier: frontend
@@ -307,7 +302,7 @@ apiVersion: certmanager.k8s.io/v1alpha1
 kind: Certificate
 metadata:
   name: sso-andrea-muellerpublic-de
-  namespace: keycloak
+  namespace: keycloak-muellerpublic-de
 spec:
   <certDefaultSpecProd(parent, vars, vars.keycloak, "sso-andrea-muellerpublic-de")>
 
