@@ -46,7 +46,7 @@ metadata:
   name: keycloak-muellerpublic-de
   namespace: keycloak-muellerpublic-de
 spec:
-  <certDefaultSpec(vars, "keycloak-muellerpublic-de", "vars.keycloak.issuer")>
+  <certDefaultSpec(vars.keycloak, "keycloak-muellerpublic-de", vars.keycloak.issuer)>
 
 ---
 
