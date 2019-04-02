@@ -4,13 +4,20 @@
  * vars.keycloak.image.name
  * vars.keycloak.image.version
  * vars.keycloak.revision
- * vars.keycloak.postgres.user
- * vars.keycloak.postgres.password
- * vars.keycloak.postgres.database
- * vars.keycloak.initialDelaySeconds
+ * vars.keycloak.readinessProbe.initialDelaySeconds
+ * vars.keycloak.livenessProbe.initialDelaySeconds
+ * vars.keycloak.java.heapStart
+ * vars.keycloak.java.heapMax
+ * vars.keycloak.java.metaspaceStart
+ * vars.keycloak.java.metaspaceMax
  * 
- * vars.postgres.admin.user
- * vars.postgres.admin.password
+ * vars.db.image.name
+ * vars.db.image.version
+ * vars.db.user
+ * vars.db.password
+ * vars.db.database
+ * vars.db.admin.user
+ * vars.db.admin.password
  * 
  * Optional:
  * 
@@ -38,11 +45,10 @@
  */
 
 import "robobeerun-templates/_affinities.stg"
-import "robobeerun-templates/_cert_config.stg"
-import "robobeerun-templates/_ingress_config.stg"
 import "robobeerun-templates/_postgres_probe.stg"
 import "robobeerun-templates/_tolerations.stg"
 import "robobeerun-templates/_resources.stg"
+import "robobeerun-templates/http_probe.stg"
 
 /*
  *
@@ -60,11 +66,11 @@ metadata:
     tier: backend
 type: Opaque
 data:
-  user: <vars.keycloak.postgres.user;format="base64">
-  password: <vars.keycloak.postgres.password;format="base64">
-  database: <vars.keycloak.postgres.database;format="base64">
-  admin_user: <vars.postgres.admin.user;format="base64">
-  admin_password: <vars.postgres.admin.password;format="base64">
+  user: <vars.db.user;format="base64">
+  password: <vars.db.password;format="base64">
+  database: <vars.db.database;format="base64">
+  admin_user: <vars.db.admin.user;format="base64">
+  admin_password: <vars.db.admin.password;format="base64">
 
 ---
 
@@ -78,18 +84,18 @@ metadata:
 data:
   pgbouncer.ini: |
     [databases]
-    <vars.keycloak.postgres.database> = host=db port=5432 dbname=<vars.keycloak.postgres.database>
+    <vars.db.database> = host=<vars.db.host> port=<vars.db.port> dbname=<vars.db.database>
     [pgbouncer]
     listen_port = 5432
     listen_addr = 0.0.0.0
     auth_type = md5
-    auth_file = /pgconf/bouncerconfig/users.txt
+    auth_file = /pgconf/users.txt
     logfile = /tmp/pgbouncer.log
     pidfile = /tmp/pgbouncer.pid
-    admin_users = <vars.keycloak.postgres.user>
+    admin_users = <vars.db.user>
     ignore_startup_parameters = extra_float_digits
   users.txt: |
-    "<vars.keycloak.postgres.user>" "<vars.keycloak.postgres.password>"
+    "<vars.db.user>" "<vars.db.password>"
 
 ---
 
@@ -129,6 +135,45 @@ spec:
         app: keycloak
         tier: frontend
     spec:
+      initContainers:
+      - name: init-db
+        image: <vars.db.image.name>:<vars.db.image.version>
+        env:
+        - name: POSTGRESQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-<vars.keycloak.revision>
+              key: user
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-<vars.keycloak.revision>
+              key: password
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: db-<vars.keycloak.revision>
+              key: database
+        - name: POSTGRESQL_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-<vars.keycloak.revision>
+              key: admin_password
+        - name: PGHOST
+          value: <vars.db.host>
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          value: "postgres"
+        command:
+        - /bin/sh
+        - -i
+        - -c
+        - >
+          while ! PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} psql "postgresql://${PGUSER}@${PGHOST}" -c "SELECT 1;"; do sleep 3; done;
+          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} createuser $POSTGRESQL_USER ;
+          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} createdb --owner=$POSTGRESQL_USER $POSTGRESQL_DATABASE ;
+          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} psql --command "ALTER USER \"${POSTGRESQL_USER}\" WITH ENCRYPTED PASSWORD '${POSTGRESQL_PASSWORD}';"
       containers:
       - image: <vars.keycloak.image.name>:<vars.keycloak.image.version>
         name: keycloak
@@ -168,19 +213,7 @@ spec:
         - containerPort: 8080
           name: "keycloak"
         <resourcesGroup(parent, vars, vars.keycloak)>
-        livenessProbe:
-          tcpSocket:
-            port: 8080
-          initialDelaySeconds: <vars.keycloak.initialDelaySeconds>
-          periodSeconds: 60
-          timeoutSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 8080
-          initialDelaySeconds: <vars.keycloak.initialDelaySeconds>
-          periodSeconds: 60
-          timeoutSeconds: 10
+        <httpReadinessProbe(vars.keycloak)>
       - image: <vars.pgbouncer.image.name>:<vars.pgbouncer.image.version>
         name: pgbouncer
         ports:
@@ -217,94 +250,6 @@ spec:
       <affinitiesGroup(parent, vars, vars.keycloak.affinity)>
       <tolerationMasterGroup(parent, vars, vars.keycloak.allowOnMaster)>
       <tolerationsGroup(parent, vars, vars.keycloak.tolerations, vars.keycloak.allowOnMaster)>
-
----
-
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: keycloak-db-setup
-  namespace: keycloak-muellerpublic-de
-  labels:
-    app: keycloak
-    tier: frontend
-    group: keycloak
-spec:
-  template:
-    metadata:
-      name: keycloak-db-setup
-    spec:
-      containers:
-      - image: <vars.postgres.image.name>:<vars.postgres.image.version>
-        name: keycloak-db-setup
-        env:
-        - name: POSTGRESQL_USER
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-db-<vars.keycloak.revision>
-              key: user
-        - name: POSTGRESQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-db-<vars.keycloak.revision>
-              key: password
-        - name: POSTGRESQL_DATABASE
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-db-<vars.keycloak.revision>
-              key: database
-        - name: POSTGRESQL_ADMIN_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-db-<vars.keycloak.revision>
-              key: admin_password
-        - name: PGHOST
-          value: "postgres"
-        - name: PGPORT
-          value: "5432"
-        - name: PGUSER
-          value: "postgres"
-        command:
-        - /bin/sh
-        - -i
-        - -c
-        - >
-          while ! PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} psql "postgresql://postgres@postgres" -c "SELECT 1;"; do sleep 3; done;
-          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} createuser $POSTGRESQL_USER ;
-          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} createdb --owner=$POSTGRESQL_USER $POSTGRESQL_DATABASE ;
-          PGPASSWORD=${POSTGRESQL_ADMIN_PASSWORD} psql --command "ALTER USER \"${POSTGRESQL_USER}\" WITH ENCRYPTED PASSWORD '${POSTGRESQL_PASSWORD}';"
-      restartPolicy: Never
-  backoffLimit: 4
-
----
-
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: sso-andrea-muellerpublic-de
-  namespace: keycloak-muellerpublic-de
-  labels:
-    app: keycloak
-    tier: frontend
-    deployment: keycloak
-  annotations:
-    <ingressDefaultAnnotations(parent, vars, vars.nginx)>
-spec:
-  <ingressDefaultSpec(parent, vars, vars.keycloak, "sso-andrea-muellerpublic-de")>
-
----
-
-<ingressService(parent, vars, vars.keycloak, "keycloak", "keycloak", "sso-andrea-muellerpublic-de")>
-
----
-
-apiVersion: certmanager.k8s.io/v1alpha1
-kind: Certificate
-metadata:
-  name: sso-andrea-muellerpublic-de
-  namespace: keycloak-muellerpublic-de
-spec:
-  <certDefaultSpecProd(parent, vars, vars.keycloak, "sso-andrea-muellerpublic-de")>
 
 ---
 
