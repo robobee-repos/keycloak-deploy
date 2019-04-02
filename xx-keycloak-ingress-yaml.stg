@@ -1,0 +1,53 @@
+/*
+ * Mandatory:
+ *
+ * vars.keycloak.hosts[]
+ * vars.keycloak.issuer
+ * 
+ * Optional:
+ * 
+ * vars.keycloak.port
+ *     Defaults to 8080.
+ * vars.nginx.clientMaxBodySize
+ *     Defaults to "".
+ *
+ */
+
+import "robobeerun-templates/_cert_config.stg"
+import "robobeerun-templates/_ingress_config.stg"
+
+/*
+ * 
+ */
+xx-keycloak-ingress-yaml(parent, vars) ::= <<
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: keycloak-muellerpublic-de
+  namespace: keycloak-muellerpublic-de
+  labels:
+    tier: frontend
+  annotations:
+    <ingressDefaultAnnotations(vars.nginx)>
+spec:
+  <ingressDefaultSpec(vars.keycloak, "keycloak-muellerpublic-de")>
+
+---
+
+<ingressService(vars.keycloak, "keycloak-muellerpublic-de", "keycloak", "keycloak-muellerpublic-de")>
+
+---
+
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: keycloak-muellerpublic-de
+  namespace: keycloak-muellerpublic-de
+spec:
+  <certDefaultSpec(vars, "keycloak-muellerpublic-de", "vars.keycloak.issuer")>
+
+---
+
+>>
