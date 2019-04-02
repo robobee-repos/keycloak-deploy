@@ -147,7 +147,7 @@ spec:
       volumes:
       - name: pgdata
         persistentVolumeClaim:
-          claimName: keycloak-data
+          claimName: keycloak-data-1
       <affinitiesGroup(parent, vars, vars.postgres.affinity)>
       <tolerationMasterGroup(parent, vars, vars.postgres.allowOnMaster)>
       <tolerationsGroup(parent, vars, vars.postgres.tolerations, vars.postgres.allowOnMaster)>
@@ -211,7 +211,7 @@ spec:
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: keycloak-data
+          claimName: keycloak-data-1
       <affinitiesGroup(parent, vars, vars.postgres.affinity)>
       <tolerationMasterGroup(parent, vars, vars.postgres.allowOnMaster)>
       <tolerationsGroup(parent, vars, vars.postgres.tolerations, vars.postgres.allowOnMaster)>
